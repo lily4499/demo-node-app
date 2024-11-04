@@ -1,0 +1,19 @@
+{
+  "name": "demo-node-app",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "mocha --recursive --timeout 60000 --exit",
+    "start": "node app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.1"
+  },
+  "devDependencies": {
+    "mocha": "^10.8.2"
+  }
+}

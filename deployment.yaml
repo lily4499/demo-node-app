@@ -18,7 +18,7 @@ spec:
       - name: my-custom-app
         image: default-route-openshift-image-registry.apps.sandbox-m2.ll9k.p1.openshiftapps.com/lili2024-dev/my-custom-app:latest  # Image URL based on your registry and project
         ports:
-        - containerPort: 8080
+        - containerPort: 8088
         env:
         - name: NODE_ENV
           value: "production"
@@ -33,5 +33,5 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 8080
+    targetPort: 8088
   type: NodePort

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-custom-app
+  labels:
+    app: my-custom-app
+spec:
+  replicas: 2  # Number of desired replicas
+  selector:
+    matchLabels:
+      app: my-custom-app
+  template:
+    metadata:
+      labels:
+        app: my-custom-app
+    spec:
+      containers:
+      - name: my-custom-app
+        image: default-route-openshift-image-registry.apps.sandbox-m2.ll9k.p1.openshiftapps.com/lili2024-dev/my-custom-app:latest  # Image URL based on your registry and project
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-custom-app-service
+spec:
+  selector:
+    app: my-custom-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: LoadBalancer

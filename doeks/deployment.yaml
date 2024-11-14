@@ -1,0 +1,45 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-deployment
+  namespace: default
+  labels:
+    app: node-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: node-app
+      tier: frontend
+      version: "1.0.0"
+  template:
+    metadata:
+      labels:
+        app: node-app
+        tier: frontend
+        version: "1.0.0"
+    spec:
+      containers:
+      - name: node-container
+        image: registry.digitalocean.com/dolilregistry/do-app:${BUILD_NUMBER}  # Updated to DigitalOcean registry
+        ports:
+        - containerPort: 3000
+      imagePullSecrets:
+      - name: do-registry-secret  # Use this if your registry is private
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-service
+  labels:
+    app: node-app
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: node-app

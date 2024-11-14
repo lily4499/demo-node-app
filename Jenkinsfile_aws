@@ -12,6 +12,7 @@ pipeline {
         NAMESPACE = 'default'  // Set the Kubernetes namespace
         GIT_REPO = 'https://github.com/lily4499/demo-node-app.git'  // Replace with your repository URL
         GIT_BRANCH = 'main'  // Replace with your branch name if different
+        CLUSTER_NAME = 'eks-cluster'  // Replace with your EKS cluster name
     }
 
     stages {
@@ -55,7 +56,7 @@ pipeline {
                     script {
                         // Update the deployment.yaml file with the new ECR image tag
                         sh '''#!/bin/bash
-                        sed -i 's|image: ${ECR_REPO_URI}:.*|image: ${ECR_REPO_URI}:${IMAGE_TAG}|' deployment.yaml
+                        sed -i 's|image: ${ECR_REPO_URI}:.*|image: ${ECR_REPO_URI}:${IMAGE_TAG}|' eks/deployment.yaml
                         '''
                         
                         // Commit and push the updated file back to GitHub
@@ -75,8 +76,8 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS}"]]) {
                     sh """
-                    aws eks update-kubeconfig --region ${AWS_REGION} --name my-cluster  // Replace with your EKS cluster name
-                    kubectl apply -f deployment.yaml -n ${NAMESPACE}
+                    aws eks update-kubeconfig --region ${AWS_REGION} --name $CLUSTER_NAME  
+                    kubectl apply -f eks/deployment.yaml -n ${NAMESPACE}
                     kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${ECR_REPO_URI}:${IMAGE_TAG} -n ${NAMESPACE} --record
                     kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
                     """

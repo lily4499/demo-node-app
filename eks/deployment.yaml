@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: node-container
-        image: 637423529262.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:4  # Update to ECR image
+        image: ${IMAGE_URL}  # Placeholder for dynamic image URL
         ports:
         - containerPort: 3000
       imagePullSecrets:

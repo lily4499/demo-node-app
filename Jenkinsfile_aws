@@ -6,6 +6,7 @@ pipeline {
         ECR_REPO_URI = '$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$IMAGE_NAME'  // Replace with your ECR URI
         IMAGE_NAME = "ecr-app-repo"
         IMAGE_TAG = "${BUILD_NUMBER}"  // Use Jenkins build number as the tag
+        IMAGE_URL = $ECR_REPO_URI:$IMAGE_TAG
         AWS_REGION = 'us-east-1'  // Replace with your AWS region
         DEPLOYMENT_NAME = "app-deployment"
         SERVICE_NAME = "app-service"

@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DO_TOKEN = credentials('digitalocean-credentials-id')  // Jenkins credential ID for DigitalOcean token
-        DO_URI_REGISTRY = "registry.digitalocean.com/dolilregistry"
+        DO_URI_REGISTRY = "registry.digitalocean.com/$DO_REGISTRY_NAME"
         DO_REGISTRY_NAME = "dolilregistry"
         IMAGE_NAME = "devops-app"
         IMAGE_TAG = "${BUILD_NUMBER}"  // Tag image with build number

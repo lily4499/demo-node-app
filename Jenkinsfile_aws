@@ -1,0 +1,112 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_CREDENTIALS = credentials('aws-credentials-id')   // Replace with your Jenkins AWS credentials ID
+        ECR_REPO_URI = '$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$IMAGE_NAME'  // Replace with your ECR URI
+        IMAGE_NAME = "devops-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"  // Use Jenkins build number as the tag
+        AWS_REGION = 'us-east-1'  // Replace with your AWS region
+        DEPLOYMENT_NAME = "app-deployment"
+        SERVICE_NAME = "app-service"
+        NAMESPACE = 'default'  // Set the Kubernetes namespace
+        GIT_REPO = 'https://github.com/lily4499/demo-node-app.git'  // Replace with your repository URL
+        GIT_BRANCH = 'main'  // Replace with your branch name if different
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: "${env.GIT_BRANCH}",
+                    url: "${env.GIT_REPO}",
+                    credentialsId: 'github-token'  // Replace with your Jenkins GitHub credentials ID
+            }
+        }
+
+        stage('Login to AWS and Docker ECR') {
+            steps {
+                script {
+                    // Login to AWS ECR
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS}"]]) {
+                        sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO_URI}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+            }
+        }
+
+        stage('Push Docker Image to ECR') {
+            steps {
+                sh 'docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_REPO_URI}:${IMAGE_TAG}'
+                sh 'docker push ${ECR_REPO_URI}:${IMAGE_TAG}'
+            }
+        }
+
+        stage('Update Deployment File and Commit to GitHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    script {
+                        // Update the deployment.yaml file with the new ECR image tag
+                        sh '''#!/bin/bash
+                        sed -i 's|image: ${ECR_REPO_URI}:.*|image: ${ECR_REPO_URI}:${IMAGE_TAG}|' deployment.yaml
+                        '''
+                        
+                        // Commit and push the updated file back to GitHub
+                        sh '''#!/bin/bash
+                        git config user.name "${GIT_USER_NAME}"
+                        git config user.email "${GIT_USER_EMAIL}"
+                        git add .
+                        git commit -m "Update image tag to ${IMAGE_TAG}"
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_REPO} ${GIT_BRANCH}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS}"]]) {
+                    sh """
+                    aws eks update-kubeconfig --region ${AWS_REGION} --name my-cluster  // Replace with your EKS cluster name
+                    kubectl apply -f deployment.yaml -n ${NAMESPACE}
+                    kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${ECR_REPO_URI}:${IMAGE_TAG} -n ${NAMESPACE} --record
+                    kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
+                    """
+                }
+            }
+        }
+
+        stage('Create EKS Service (if not exists)') {
+            steps {
+                script {
+                    // Check if the service exists, if not, create it
+                    sh """
+                    kubectl get service ${SERVICE_NAME} -n ${NAMESPACE} || kubectl expose deployment ${DEPLOYMENT_NAME} --type=LoadBalancer --name=${SERVICE_NAME} -n ${NAMESPACE}
+                    """
+                    
+                    // Get the service URL and display it
+                    def serviceUrl = sh(script: "kubectl get svc ${SERVICE_NAME} -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
+                    echo "Application is accessible at: http://${serviceUrl}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                // Clean up Docker images from the local environment
+                sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'
+                sh 'docker rmi ${ECR_REPO_URI}:${IMAGE_TAG} || true'
+            }
+        }
+    }
+}

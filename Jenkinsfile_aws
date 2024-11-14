@@ -4,7 +4,7 @@ pipeline {
     environment {
         AWS_CREDENTIALS = credentials('aws-credentials-id')   // Replace with your Jenkins AWS credentials ID
         ECR_REPO_URI = '$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$IMAGE_NAME'  // Replace with your ECR URI
-        IMAGE_NAME = "devops-app"
+        IMAGE_NAME = "ecr-app-repo"
         IMAGE_TAG = "${BUILD_NUMBER}"  // Use Jenkins build number as the tag
         AWS_REGION = 'us-east-1'  // Replace with your AWS region
         DEPLOYMENT_NAME = "app-deployment"

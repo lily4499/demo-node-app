@@ -74,7 +74,8 @@ pipeline {
             steps {
                 script {
                     // Authenticate with the Kubernetes cluster
-                    withCredentials([string(credentialsId: 'digitalocean-kubeconfig', variable: 'KUBECONFIG')]) {
+                    // Use the Secret File as kubeconfig
+                    withCredentials([file(credentialsId: 'digitalocean-kubeconfig', variable: 'KUBECONFIG')]) {
                         sh 'kubectl apply -f doeks/deployment.yaml -n ${NAMESPACE}'
                         sh 'kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${IMAGE_URL} -n ${NAMESPACE} --record'
                         sh 'kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}'
